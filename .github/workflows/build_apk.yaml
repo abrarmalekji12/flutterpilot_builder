@@ -24,6 +24,16 @@ jobs:
       #     curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${{ github.event.inputs.zip_url }}" -o source.zip
       #     unzip -q source.zip -d source
 
+      # - name: Download ZIP from input
+      #   run: |
+      #     echo "Downloading ${{ github.event.inputs.zip_url }}"
+      #     curl -L \
+      #       -H "Accept: application/octet-stream" \
+      #       -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+      #       "${{ github.event.inputs.zip_url }}" \
+      #       -o source.zip
+      #     unzip -q source.zip -d source
+
       - name: Download ZIP from input
         run: |
           echo "Downloading ${{ github.event.inputs.zip_url }}"
@@ -32,8 +42,19 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "${{ github.event.inputs.zip_url }}" \
             -o source.zip
-          unzip -q source.zip -d source
           
+          # Verify it's actually a ZIP file
+          echo "Checking file type:"
+          file source.zip
+          
+          # Test the ZIP integrity
+          echo "Testing ZIP integrity:"
+          unzip -t source.zip
+          
+          # Extract if tests pass
+          echo "Extracting ZIP:"
+          unzip -q source.zip -d source
+      
       - name: Install JDK (required by Android build)
         uses: actions/setup-java@v4
         with:
