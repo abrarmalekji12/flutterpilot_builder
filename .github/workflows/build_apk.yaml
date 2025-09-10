@@ -18,6 +18,12 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      - name: Download ZIP from input
+        run: |
+          echo "Downloading ${{ github.event.inputs.zip_url }}"
+          curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${{ github.event.inputs.zip_url }}" -o source.zip
+          unzip -q source.zip -d source
+          
       - name: Install JDK (required by Android build)
         uses: actions/setup-java@v4
         with:
@@ -46,11 +52,6 @@ jobs:
       #     fi
       #     ls -la $SRC_DIR
   
-      - name: Download ZIP from input
-        run: |
-          echo "Downloading ${{ github.event.inputs.zip_url }}"
-          curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${{ github.event.inputs.zip_url }}" -o source.zip
-          unzip -q source.zip -d source
 
       - name: Restore pub cache
         uses: actions/cache@v4
