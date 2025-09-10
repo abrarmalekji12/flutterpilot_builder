@@ -18,10 +18,20 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      # - name: Download ZIP from input
+      #   run: |
+      #     echo "Downloading ${{ github.event.inputs.zip_url }}"
+      #     curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${{ github.event.inputs.zip_url }}" -o source.zip
+      #     unzip -q source.zip -d source
+
       - name: Download ZIP from input
         run: |
           echo "Downloading ${{ github.event.inputs.zip_url }}"
-          curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${{ github.event.inputs.zip_url }}" -o source.zip
+          curl -L \
+            -H "Accept: application/octet-stream" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "${{ github.event.inputs.zip_url }}" \
+            -o source.zip
           unzip -q source.zip -d source
           
       - name: Install JDK (required by Android build)
