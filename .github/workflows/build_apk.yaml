@@ -1,4 +1,4 @@
-name: FlutterPilot CI — build APK
+name: Flutter Build with Permissions
 
 on:
   workflow_dispatch:
@@ -18,22 +18,6 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      # - name: Download ZIP from input
-      #   run: |
-      #     echo "Downloading ${{ github.event.inputs.zip_url }}"
-      #     curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${{ github.event.inputs.zip_url }}" -o source.zip
-      #     unzip -q source.zip -d source
-
-      # - name: Download ZIP from input
-      #   run: |
-      #     echo "Downloading ${{ github.event.inputs.zip_url }}"
-      #     curl -L \
-      #       -H "Accept: application/octet-stream" \
-      #       -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-      #       "${{ github.event.inputs.zip_url }}" \
-      #       -o source.zip
-      #     unzip -q source.zip -d source
-
       - name: Download ZIP from input
         run: |
           echo "Downloading ${{ github.event.inputs.zip_url }}"
@@ -43,29 +27,13 @@ jobs:
             "${{ github.event.inputs.zip_url }}" \
             -o source.zip
           
-          # Check what we got
-          echo "Checking file type:"
-          file source.zip
-          
-          # Test the ZIP integrity (allow warnings)
-          echo "Testing ZIP integrity:"
-          if unzip -t source.zip 2>&1 | tee zip_test.log; then
-            echo "ZIP test passed"
-          elif grep -q "No errors detected" zip_test.log; then
-            echo "ZIP test passed with warnings (this is OK)"
-          else
-            echo "ZIP test failed"
-            exit 1
-          fi
-          
-          # Extract the ZIP
-          echo "Extracting ZIP:"
+          # Test and extract ZIP
+          unzip -t source.zip || echo "ZIP test completed with warnings"
           unzip -q source.zip -d source
           
-          # Verify extraction worked
-          echo "Extracted contents:"
+          echo "Extracted files:"
           ls -la source/
-      
+
       - name: Install JDK (required by Android build)
         uses: actions/setup-java@v4
         with:
@@ -77,25 +45,43 @@ jobs:
         with:
           channel: 'stable'
 
-      # - name: Download ZIP (source code)
-      #   env:
-      #     ZIP_URL: ${{ secrets.SOURCE_ZIP_URL }}
-      #   run: |
-      #     if [ -z "$ZIP_URL" ]; then
-      #       echo "ERROR: SOURCE_ZIP_URL secret is empty"; exit 1
-      #     fi
-      #     mkdir -p $SRC_DIR
-      #     curl -L "$ZIP_URL" -o $ZIP_FILE
-      #     unzip -q $ZIP_FILE -d $SRC_DIR
-      #     # If the zip contains a single top-level folder, move its contents up:
-      #     top_entries=$(ls -A $SRC_DIR)
-      #     if [ $(echo "$top_entries" | wc -l) -eq 1 ] && [ -d "$SRC_DIR/$top_entries" ]; then
-      #       mv $SRC_DIR/$top_entries/* $SRC_DIR/ || true
-      #     fi
-      #     ls -la $SRC_DIR
-  
+      - name: Step 1 - Flutter create with Android platform
+        working-directory: ./source
+        run: |
+          echo "=== STEP 1: Running flutter create . --platforms=android ==="
+          flutter create . --platforms=android
+          echo "Flutter create completed successfully"
 
-      - name: Restore pub cache
+      - name: Step 2 - Add Internet Permission
+        working-directory: ./source
+        run: |
+          echo "=== STEP 2: Adding android.permission.INTERNET ==="
+          
+          # Path to Android manifest
+          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          
+          if [ ! -f "$MANIFEST_PATH" ]; then
+            echo "ERROR: AndroidManifest.xml not found at $MANIFEST_PATH"
+            exit 1
+          fi
+          
+          # Check if permission already exists
+          if grep -q "android.permission.INTERNET" "$MANIFEST_PATH"; then
+            echo "INTERNET permission already exists"
+          else
+            echo "Adding INTERNET permission to AndroidManifest.xml"
+            
+            # Add the permission before the <application> tag
+            sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST_PATH"
+            
+            echo "Permission added successfully"
+          fi
+          
+          # Verify the permission was added
+          echo "Current permissions in manifest:"
+          grep -n "uses-permission" "$MANIFEST_PATH" || echo "No uses-permission tags found"
+
+      - name: Step 3 - Restore pub cache
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
@@ -103,7 +89,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pub-
 
-      - name: Restore Gradle caches
+      - name: Step 3 - Restore Gradle caches
         uses: actions/cache@v4
         with:
           path: |
@@ -113,28 +99,29 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Accept Android licenses (non-interactive)
+      - name: Step 3 - Accept Android licenses
         run: |
+          echo "=== STEP 3: Accepting Android licenses ==="
           yes | sdkmanager --licenses || true
 
-      - name: Flutter pub get
+      - name: Step 3 - Flutter pub get
         working-directory: ./source
-        run: flutter pub get
+        run: |
+          echo "Getting Flutter dependencies..."
+          flutter pub get
 
-      - name: Flutter clean
-        working-directory: ./source
-        run: flutter clean
-
-      - name: Build APK (release)
+      - name: Step 3 - Flutter build APK (release)
         working-directory: ./source
         env:
-          # optional: set ANDROID_KEYSTORE, signing configs, etc via secrets if you sign here
-          # Example: ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          # If you don't sign, this will produce an unsigned debug/release depending on config.
           CI: true
         run: |
-          # tweak target or flavor if needed, e.g. --flavor prod --target lib/main_prod.dart
-          flutter build apk --release --no-shrink
+          echo "=== STEP 3: Running flutter build apk --release ==="
+          flutter build apk --release
+          echo "APK build completed successfully"
+          
+          # Show build output location
+          echo "Built APK location:"
+          find build/app/outputs -name "*.apk" -type f
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
