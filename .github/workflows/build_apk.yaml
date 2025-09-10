@@ -1,0 +1,93 @@
+name: FlutterPilot CI — build APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+env:
+  ZIP_FILE: source.zip
+  SRC_DIR: source
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Install JDK (required by Android build)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Download ZIP (source code)
+        env:
+          ZIP_URL: ${{ secrets.SOURCE_ZIP_URL }}
+        run: |
+          if [ -z "$ZIP_URL" ]; then
+            echo "ERROR: SOURCE_ZIP_URL secret is empty"; exit 1
+          fi
+          mkdir -p $SRC_DIR
+          curl -L "$ZIP_URL" -o $ZIP_FILE
+          unzip -q $ZIP_FILE -d $SRC_DIR
+          # If the zip contains a single top-level folder, move its contents up:
+          top_entries=$(ls -A $SRC_DIR)
+          if [ $(echo "$top_entries" | wc -l) -eq 1 ] && [ -d "$SRC_DIR/$top_entries" ]; then
+            mv $SRC_DIR/$top_entries/* $SRC_DIR/ || true
+          fi
+          ls -la $SRC_DIR
+
+      - name: Restore pub cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('source/**/pubspec.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Restore Gradle caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('source/**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Accept Android licenses (non-interactive)
+        run: |
+          yes | sdkmanager --licenses || true
+
+      - name: Flutter pub get
+        working-directory: ./source
+        run: flutter pub get
+
+      - name: Flutter clean
+        working-directory: ./source
+        run: flutter clean
+
+      - name: Build APK (release)
+        working-directory: ./source
+        env:
+          # optional: set ANDROID_KEYSTORE, signing configs, etc via secrets if you sign here
+          # Example: ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          # If you don't sign, this will produce an unsigned debug/release depending on config.
+          CI: true
+        run: |
+          # tweak target or flavor if needed, e.g. --flavor prod --target lib/main_prod.dart
+          flutter build apk --release --no-shrink
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-apk
+          path: |
+            source/build/app/outputs/flutter-apk/*.apk
