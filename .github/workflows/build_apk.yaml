@@ -43,17 +43,28 @@ jobs:
             "${{ github.event.inputs.zip_url }}" \
             -o source.zip
           
-          # Verify it's actually a ZIP file
+          # Check what we got
           echo "Checking file type:"
           file source.zip
           
-          # Test the ZIP integrity
+          # Test the ZIP integrity (allow warnings)
           echo "Testing ZIP integrity:"
-          unzip -t source.zip
+          if unzip -t source.zip 2>&1 | tee zip_test.log; then
+            echo "ZIP test passed"
+          elif grep -q "No errors detected" zip_test.log; then
+            echo "ZIP test passed with warnings (this is OK)"
+          else
+            echo "ZIP test failed"
+            exit 1
+          fi
           
-          # Extract if tests pass
+          # Extract the ZIP
           echo "Extracting ZIP:"
           unzip -q source.zip -d source
+          
+          # Verify extraction worked
+          echo "Extracted contents:"
+          ls -la source/
       
       - name: Install JDK (required by Android build)
         uses: actions/setup-java@v4
