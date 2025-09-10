@@ -2,9 +2,11 @@ name: FlutterPilot CI — build APK
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+    inputs:
+      zip_url:
+        description: 'URL of the source ZIP to build'
+        required: true
+        type: string
 
 env:
   ZIP_FILE: source.zip
