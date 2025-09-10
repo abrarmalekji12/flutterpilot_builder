@@ -27,22 +27,28 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Download ZIP (source code)
-        env:
-          ZIP_URL: ${{ secrets.SOURCE_ZIP_URL }}
+      # - name: Download ZIP (source code)
+      #   env:
+      #     ZIP_URL: ${{ secrets.SOURCE_ZIP_URL }}
+      #   run: |
+      #     if [ -z "$ZIP_URL" ]; then
+      #       echo "ERROR: SOURCE_ZIP_URL secret is empty"; exit 1
+      #     fi
+      #     mkdir -p $SRC_DIR
+      #     curl -L "$ZIP_URL" -o $ZIP_FILE
+      #     unzip -q $ZIP_FILE -d $SRC_DIR
+      #     # If the zip contains a single top-level folder, move its contents up:
+      #     top_entries=$(ls -A $SRC_DIR)
+      #     if [ $(echo "$top_entries" | wc -l) -eq 1 ] && [ -d "$SRC_DIR/$top_entries" ]; then
+      #       mv $SRC_DIR/$top_entries/* $SRC_DIR/ || true
+      #     fi
+      #     ls -la $SRC_DIR
+  
+      - name: Download ZIP from input
         run: |
-          if [ -z "$ZIP_URL" ]; then
-            echo "ERROR: SOURCE_ZIP_URL secret is empty"; exit 1
-          fi
-          mkdir -p $SRC_DIR
-          curl -L "$ZIP_URL" -o $ZIP_FILE
-          unzip -q $ZIP_FILE -d $SRC_DIR
-          # If the zip contains a single top-level folder, move its contents up:
-          top_entries=$(ls -A $SRC_DIR)
-          if [ $(echo "$top_entries" | wc -l) -eq 1 ] && [ -d "$SRC_DIR/$top_entries" ]; then
-            mv $SRC_DIR/$top_entries/* $SRC_DIR/ || true
-          fi
-          ls -la $SRC_DIR
+          echo "Downloading ${{ github.event.inputs.zip_url }}"
+          curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${{ github.event.inputs.zip_url }}" -o source.zip
+          unzip -q source.zip -d source
 
       - name: Restore pub cache
         uses: actions/cache@v4
