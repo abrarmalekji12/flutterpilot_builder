@@ -172,20 +172,18 @@ jobs:
           firebase --version
 
 
-      # Authenticate to Firebase (corrected for CI environment)
-      - name: Firebase Authentication
-        run: |
-          # Create service account file from secret
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
-          
-          # Authenticate using service account key file
-          firebase use --add ${{ secrets.FIREBASE_PROJECT_ID }} --token "${{ secrets.FIREBASE_TOKEN }}"
-          
-          # Export credential path for Google Cloud SDK to use
-          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/firebase-service-account.json
-          
-          # Verify authentication
-          firebase projects:list --token "${{ secrets.FIREBASE_TOKEN }}"
+# Set up Google Cloud SDK
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      # Authenticate with Google Cloud using service account
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
 
 
       - name: Extract APK Info
