@@ -7,6 +7,10 @@ on:
         description: 'URL of the source ZIP to build'
         required: true
         type: string
+      project_id:
+        description: 'ProjectID'
+        required: true
+        type: string
       app_name:
         description: 'App name for Firebase storage path'
         required: true
@@ -231,6 +235,7 @@ jobs:
           # Create JSON document for Firestore
           cat > apk_metadata.json << EOL
           {
+            "projectId": "${{ github.event.inputs.project_id }}"
             "appName": "${{ github.event.inputs.app_name }}",
             "versionName": "${{ github.event.inputs.version_name }}",
             "versionCode": "${{ steps.apk_info.outputs.version_code }}",
