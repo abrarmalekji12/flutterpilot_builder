@@ -7,6 +7,15 @@ on:
         description: 'URL of the source ZIP to build'
         required: true
         type: string
+      app_name:
+        description: 'App name for Firebase storage path'
+        required: true
+        type: string
+      version_name:
+        description: 'Version name for Firebase storage path'
+        default: 'latest'
+        required: false
+        type: string
 
 env:
   ZIP_FILE: source.zip
