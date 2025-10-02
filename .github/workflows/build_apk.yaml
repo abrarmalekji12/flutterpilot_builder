@@ -45,6 +45,42 @@ jobs:
         with:
           channel: 'stable'
 
+      # Enhanced caching for Flutter & Dart
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            source/.dart_tool
+            source/.flutter-plugins
+            source/.flutter-plugins-dependencies
+          key: ${{ runner.os }}-flutter-${{ hashFiles('source/**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
+
+      # Enhanced Gradle caching
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            source/android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('source/**/*.gradle*', 'source/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Cache Android build files
+      - name: Cache Android build files
+        uses: actions/cache@v4
+        with:
+          path: |
+            source/build
+            source/android/app/build
+          key: ${{ runner.os }}-android-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-android-build-
+
       - name: Step 1 - Flutter create with Android platform
         working-directory: ./source
         run: |
@@ -81,41 +117,32 @@ jobs:
           echo "Current permissions in manifest:"
           grep -n "uses-permission" "$MANIFEST_PATH" || echo "No uses-permission tags found"
 
-      - name: Step 3 - Restore pub cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('source/**/pubspec.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-
-
-      - name: Step 3 - Restore Gradle caches
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('source/**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Step 3 - Accept Android licenses
+      - name: Accept Android licenses
         run: |
-          echo "=== STEP 3: Accepting Android licenses ==="
+          echo "=== Accepting Android licenses ==="
           yes | sdkmanager --licenses || true
 
-      - name: Step 3 - Flutter pub get
+      - name: Flutter pub get
         working-directory: ./source
         run: |
           echo "Getting Flutter dependencies..."
           flutter pub get
 
-      - name: Step 3 - Flutter build APK (release)
+      # Configure Gradle build options for better performance
+      - name: Configure Gradle for CI
+        working-directory: ./source
+        run: |
+          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError" >> android/gradle.properties
+          echo "org.gradle.parallel=true" >> android/gradle.properties
+          echo "org.gradle.caching=true" >> android/gradle.properties
+          echo "org.gradle.daemon=false" >> android/gradle.properties
+
+      - name: Flutter build APK (release)
         working-directory: ./source
         env:
           CI: true
         run: |
-          echo "=== STEP 3: Running flutter build apk --release ==="
+          echo "=== Running flutter build apk --release ==="
           flutter build apk --release
           echo "APK build completed successfully"
           
