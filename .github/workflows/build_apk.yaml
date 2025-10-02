@@ -152,9 +152,109 @@ jobs:
           echo "Built APK location:"
           find build/app/outputs -name "*.apk" -type f
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-apk
-          path: |
-            source/build/app/outputs/flutter-apk/*.apk
+      # Install Firebase CLI
+      - name: Install Firebase CLI
+        run: |
+          curl -sL https://firebase.tools | bash
+          firebase --version
+
+      # Authenticate to Firebase
+      - name: Firebase Authentication
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
+          export GOOGLE_APPLICATION_CREDENTIALS=firebase-service-account.json
+          firebase login:ci --no-localhost
+
+      - name: Extract APK Info
+        id: apk_info
+        working-directory: ./source
+        run: |
+          APK_PATH=$(find build/app/outputs -name "*.apk" -type f | head -1)
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          
+          # Try to extract version info from the APK
+          if [ -x "$(command -v aapt)" ]; then
+            VERSION_CODE=$(aapt dump badging "$APK_PATH" | grep versionCode | sed "s/.*versionCode='\([0-9]*\).*/\1/")
+            VERSION_NAME=$(aapt dump badging "$APK_PATH" | grep versionName | sed "s/.*versionName='\([^']*\).*/\1/")
+            echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+            echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "version_code=unknown" >> $GITHUB_OUTPUT
+            echo "version_name=${{ github.event.inputs.version_name }}" >> $GITHUB_OUTPUT
+          fi
+          
+          # Get the file size
+          FILE_SIZE=$(stat -c%s "$APK_PATH")
+          echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
+          
+          # Generate MD5 hash for the APK
+          APK_HASH=$(md5sum "$APK_PATH" | cut -d ' ' -f 1)
+          echo "apk_hash=$APK_HASH" >> $GITHUB_OUTPUT
+          
+          # Generate timestamp
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      # Upload APK to Firebase Storage
+      - name: Upload to Firebase Storage
+        id: firebase_upload
+        run: |
+          APK_PATH="${{ steps.apk_info.outputs.apk_path }}"
+          APP_NAME="${{ github.event.inputs.app_name }}"
+          VERSION="${{ github.event.inputs.version_name }}"
+          TIMESTAMP="${{ steps.apk_info.outputs.timestamp }}"
+          
+          # Create a unique filename
+          FILENAME="${APP_NAME}_${VERSION}_${TIMESTAMP}.apk"
+          STORAGE_PATH="apps/${APP_NAME}/${VERSION}/${FILENAME}"
+          
+          # Upload to Firebase Storage
+          firebase storage:upload --project ${{ secrets.FIREBASE_PROJECT_ID }} "$APK_PATH" "gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH"
+          
+          # Get the download URL
+          DOWNLOAD_URL=$(firebase storage:url --project ${{ secrets.FIREBASE_PROJECT_ID }} "gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH")
+          echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+          echo "storage_path=$STORAGE_PATH" >> $GITHUB_OUTPUT
+
+      # Update Firestore with APK metadata
+      - name: Update Firestore
+        run: |
+          # Create JSON document for Firestore
+          cat > apk_metadata.json << EOL
+          {
+            "appName": "${{ github.event.inputs.app_name }}",
+            "versionName": "${{ github.event.inputs.version_name }}",
+            "versionCode": "${{ steps.apk_info.outputs.version_code }}",
+            "buildTimestamp": "${{ steps.apk_info.outputs.timestamp }}",
+            "fileSize": ${{ steps.apk_info.outputs.file_size }},
+            "md5Hash": "${{ steps.apk_info.outputs.apk_hash }}",
+            "downloadUrl": "${{ steps.firebase_upload.outputs.download_url }}",
+            "storagePath": "${{ steps.firebase_upload.outputs.storage_path }}",
+            "buildId": "${{ github.run_id }}",
+            "buildNumber": "${{ github.run_number }}",
+            "buildType": "release",
+            "platform": "android",
+            "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOL
+          
+          # Add to Firestore using Firebase CLI
+          firebase firestore:set --project ${{ secrets.FIREBASE_PROJECT_ID }} \
+            "app_builds/${{ steps.apk_info.outputs.timestamp }}" \
+            --document-id "${{ steps.apk_info.outputs.timestamp }}" \
+            --data-file apk_metadata.json
+          
+          # Also update a 'latest' document for this app
+          firebase firestore:set --project ${{ secrets.FIREBASE_PROJECT_ID }} \
+            "apps/${{ github.event.inputs.app_name }}/latest_android" \
+            --document-id "latest" \
+            --data-file apk_metadata.json
+
+      - name: Output Build Info
+        run: |
+          echo "✅ Build Completed Successfully"
+          echo "📱 App: ${{ github.event.inputs.app_name }}"
+          echo "📦 Version: ${{ github.event.inputs.version_name }}"
+          echo "🔗 Download URL: ${{ steps.firebase_upload.outputs.download_url }}"
+          echo "📁 Firebase Storage Path: ${{ steps.firebase_upload.outputs.storage_path }}"
+          echo "🔄 Firestore Document: apps/${{ github.event.inputs.app_name }}/latest_android/latest"
