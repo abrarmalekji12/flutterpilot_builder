@@ -228,9 +228,8 @@ jobs:
           # Create a unique filename
           FILENAME="${APP_NAME}_${VERSION}_${TIMESTAMP}.apk"
           STORAGE_PATH="apps/${APP_NAME}/${VERSION}/${FILENAME}"
-          
-          # Upload to Firebase Storage
-          firebase storage:upload --project ${{ secrets.FIREBASE_PROJECT_ID }} "$APK_PATH" "gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH" --token "${{ secrets.FIREBASE_TOKEN }}"
+
+          gcloud --quiet storage cp "${APK_PATH}" "gs://${BUCKET}/${STORAGE_PATH}"
           
           # Get the download URL
           DOWNLOAD_URL=$(firebase storage:url --project ${{ secrets.FIREBASE_PROJECT_ID }} "gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH" --token "${{ secrets.FIREBASE_TOKEN }}")
