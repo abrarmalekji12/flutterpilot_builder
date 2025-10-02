@@ -171,12 +171,22 @@ jobs:
           curl -sL https://firebase.tools | bash
           firebase --version
 
-      # Authenticate to Firebase
+
+      # Authenticate to Firebase (corrected for CI environment)
       - name: Firebase Authentication
         run: |
+          # Create service account file from secret
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
-          export GOOGLE_APPLICATION_CREDENTIALS=firebase-service-account.json
-          firebase login:ci --no-localhost
+          
+          # Authenticate using service account key file
+          firebase use --add ${{ secrets.FIREBASE_PROJECT_ID }} --token "${{ secrets.FIREBASE_TOKEN }}"
+          
+          # Export credential path for Google Cloud SDK to use
+          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/firebase-service-account.json
+          
+          # Verify authentication
+          firebase projects:list --token "${{ secrets.FIREBASE_TOKEN }}"
+
 
       - name: Extract APK Info
         id: apk_info
@@ -222,20 +232,20 @@ jobs:
           STORAGE_PATH="apps/${APP_NAME}/${VERSION}/${FILENAME}"
           
           # Upload to Firebase Storage
-          firebase storage:upload --project ${{ secrets.FIREBASE_PROJECT_ID }} "$APK_PATH" "gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH"
+          firebase storage:upload --project ${{ secrets.FIREBASE_PROJECT_ID }} "$APK_PATH" "gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH" --token "${{ secrets.FIREBASE_TOKEN }}"
           
           # Get the download URL
-          DOWNLOAD_URL=$(firebase storage:url --project ${{ secrets.FIREBASE_PROJECT_ID }} "gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH")
+          DOWNLOAD_URL=$(firebase storage:url --project ${{ secrets.FIREBASE_PROJECT_ID }} "gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH" --token "${{ secrets.FIREBASE_TOKEN }}")
           echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
           echo "storage_path=$STORAGE_PATH" >> $GITHUB_OUTPUT
-
+      
       # Update Firestore with APK metadata
       - name: Update Firestore
         run: |
           # Create JSON document for Firestore
           cat > apk_metadata.json << EOL
           {
-            "projectId": "${{ github.event.inputs.project_id }}"
+            "projectId": "${{ github.event.inputs.project_id }}",
             "appName": "${{ github.event.inputs.app_name }}",
             "versionName": "${{ github.event.inputs.version_name }}",
             "versionCode": "${{ steps.apk_info.outputs.version_code }}",
@@ -256,13 +266,16 @@ jobs:
           firebase firestore:set --project ${{ secrets.FIREBASE_PROJECT_ID }} \
             "app_builds/${{ steps.apk_info.outputs.timestamp }}" \
             --document-id "${{ steps.apk_info.outputs.timestamp }}" \
-            --data-file apk_metadata.json
+            --data-file apk_metadata.json \
+            --token "${{ secrets.FIREBASE_TOKEN }}"
           
           # Also update a 'latest' document for this app
           firebase firestore:set --project ${{ secrets.FIREBASE_PROJECT_ID }} \
             "apps/${{ github.event.inputs.app_name }}/latest_android" \
             --document-id "latest" \
-            --data-file apk_metadata.json
+            --data-file apk_metadata.json \
+            --token "${{ secrets.FIREBASE_TOKEN }}"
+      
 
       - name: Output Build Info
         run: |
