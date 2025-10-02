@@ -184,6 +184,9 @@ jobs:
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          export_environment_variables: true
+          create_credentials_file: true
+          cleanup_credentials: true
 
 
 
@@ -231,13 +234,12 @@ jobs:
           STORAGE_PATH="apps/${APP_NAME}/${VERSION}/${FILENAME}"
           GCS_PATH="gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH"
           
+          echo "Verifying authentication..."
+          gcloud auth list
+          
           # Upload to Firebase Storage using gsutil
           echo "Uploading APK to $GCS_PATH"
           gsutil cp "$APK_PATH" "$GCS_PATH"
-          
-          # Make the file publicly accessible
-          echo "Setting public access"
-          gsutil acl ch -u AllUsers:R "$GCS_PATH"
           
           # Get the download URL
           DOWNLOAD_URL="https://storage.googleapis.com/${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH"
