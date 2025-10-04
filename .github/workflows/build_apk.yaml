@@ -275,18 +275,19 @@ jobs:
           }
           EOL
           
-          # Add to Firestore using Firebase CLI
-          # The document ID is part of the path: collection/documentId
-          firebase firestore:set --project ${{ secrets.FIREBASE_PROJECT_ID }} \
-            "app_builds/${{ steps.apk_info.outputs.timestamp }}" \
-            --data-file apk_metadata.json \
-            --token "${{ secrets.FIREBASE_TOKEN }}"
+          # Add to Firestore using gcloud
+          gcloud firestore documents create \
+            --project=${{ secrets.FIREBASE_PROJECT_ID }} \
+            --collection-ids=app_builds \
+            --document-id=${{ steps.apk_info.outputs.timestamp }} \
+            --data-file=apk_metadata.json
           
-          # Also update a 'latest' document for this app
-          firebase firestore:set --project ${{ secrets.FIREBASE_PROJECT_ID }} \
-            "apps/${{ github.event.inputs.app_name }}/latest_android/latest" \
-            --data-file apk_metadata.json \
-            --token "${{ secrets.FIREBASE_TOKEN }}"
+          # Update latest document
+          gcloud firestore documents create \
+            --project=${{ secrets.FIREBASE_PROJECT_ID }} \
+            --collection-ids=apps,${{ github.event.inputs.app_name }},latest_android \
+            --document-id=latest \
+            --data-file=apk_metadata.json
       
 
       - name: Output Build Info
