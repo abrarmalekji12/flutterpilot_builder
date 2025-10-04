@@ -253,58 +253,43 @@ jobs:
           npm install -g firebase-tools
           firebase --version
       
+      
       - name: Update Firestore
         run: |
           TIMESTAMP=$(date +%s)
           APP_NAME="${{ github.event.inputs.app_name }}"
           PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           
-          # Get access token
+          # Get access token from gcloud
           ACCESS_TOKEN=$(gcloud auth print-access-token)
           
-          # Create JSON payload with proper Firestore format
-          cat > payload.json << EOL
+          # Create Firestore document payload
+          cat > payload.json << 'EOL'
           {
             "fields": {
               "projectId": {"stringValue": "${{ github.event.inputs.project_id }}"},
               "appName": {"stringValue": "${{ github.event.inputs.app_name }}"},
               "versionName": {"stringValue": "${{ github.event.inputs.version_name }}"},
-              "versionCode": {"stringValue": "${{ steps.apk_info.outputs.version_code }}"},
-              "buildTimestamp": {"stringValue": "${TIMESTAMP}"},
-              "fileSize": {"integerValue": "${{ steps.apk_info.outputs.file_size }}"},
-              "md5Hash": {"stringValue": "${{ steps.apk_info.outputs.apk_hash }}"},
               "downloadUrl": {"stringValue": "${{ steps.firebase_upload.outputs.download_url }}"},
               "storagePath": {"stringValue": "${{ steps.firebase_upload.outputs.storage_path }}"},
               "buildId": {"stringValue": "${{ github.run_id }}"},
               "buildNumber": {"integerValue": "${{ github.run_number }}"},
               "buildType": {"stringValue": "release"},
               "platform": {"stringValue": "android"},
-              "updatedAt": {"timestampValue": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+              "updatedAt": {"timestampValue": "TIMESTAMP_PLACEHOLDER"}
             }
           }
           EOL
           
-          echo "Uploading to Firestore..."
+          # Replace placeholders
+          sed -i "s/TIMESTAMP_PLACEHOLDER/$(date -u +%Y-%m-%dT%H:%M:%SZ)/" payload.json
           
-          # Upload to app_builds collection
+          # Create document in Firestore using REST API
           curl -X PATCH \
-            "https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/app_builds/${TIMESTAMP}?updateMask.fieldPaths=projectId&updateMask.fieldPaths=appName&updateMask.fieldPaths=versionName&updateMask.fieldPaths=versionCode&updateMask.fieldPaths=buildTimestamp&updateMask.fieldPaths=fileSize&updateMask.fieldPaths=md5Hash&updateMask.fieldPaths=downloadUrl&updateMask.fieldPaths=storagePath&updateMask.fieldPaths=buildId&updateMask.fieldPaths=buildNumber&updateMask.fieldPaths=buildType&updateMask.fieldPaths=platform&updateMask.fieldPaths=updatedAt" \
+            "https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/app_builds/${TIMESTAMP}" \
             -H "Authorization: Bearer ${ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
             -d @payload.json
-          
-          echo ""
-          echo "Updating latest document..."
-          
-          # Update latest document for this app
-          curl -X PATCH \
-            "https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/apps/${APP_NAME}/latest_android/latest?updateMask.fieldPaths=projectId&updateMask.fieldPaths=appName&updateMask.fieldPaths=versionName&updateMask.fieldPaths=versionCode&updateMask.fieldPaths=buildTimestamp&updateMask.fieldPaths=fileSize&updateMask.fieldPaths=md5Hash&updateMask.fieldPaths=downloadUrl&updateMask.fieldPaths=storagePath&updateMask.fieldPaths=buildId&updateMask.fieldPaths=buildNumber&updateMask.fieldPaths=buildType&updateMask.fieldPaths=platform&updateMask.fieldPaths=updatedAt" \
-            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d @payload.json
-          
-          echo ""
-          echo "Firestore update completed"
 
       - name: Output Build Info
         run: |
