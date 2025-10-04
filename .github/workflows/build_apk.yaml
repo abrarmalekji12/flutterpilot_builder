@@ -228,11 +228,13 @@ jobs:
       - name: Upload to Firebase Storage
         id: firebase_upload
         run: |
+
           # Set variables
-          APK_PATH= "/tmp/test.apk"  #"${{ steps.apk_info.outputs.apk_path }}"
+          APK_PATH="/tmp/test.apk"  #"${{ steps.apk_info.outputs.apk_path }}"
           APP_NAME="${{ github.event.inputs.app_name }}"
           VERSION="${{ github.event.inputs.version_name }}"
           TIMESTAMP="${{ steps.apk_info.outputs.timestamp }}"
+    
           
           # Create a unique filename
           FILENAME="${APP_NAME}_${VERSION}_${TIMESTAMP}.apk"
