@@ -31,146 +31,146 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      # - name: Download ZIP from input
-      #   run: |
-      #     echo "Downloading ${{ github.event.inputs.zip_url }}"
-      #     curl -L \
-      #       -H "Accept: application/octet-stream" \
-      #       -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-      #       "${{ github.event.inputs.zip_url }}" \
-      #       -o source.zip
-          
-      #     # Test and extract ZIP
-      #     unzip -t source.zip || echo "ZIP test completed with warnings"
-      #     unzip -q source.zip -d source
-          
-      #     echo "Extracted files:"
-      #     ls -la source/
-
-      # - name: Install JDK (required by Android build)
-      #   uses: actions/setup-java@v4
-      #   with:
-      #     distribution: 'temurin'
-      #     java-version: '17'
-
-      # - name: Set up Flutter (stable)
-      #   uses: subosito/flutter-action@v2
-      #   with:
-      #     channel: 'stable'
-
-      # # Enhanced caching for Flutter & Dart
-      # - name: Cache Flutter dependencies
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: |
-      #       ~/.pub-cache
-      #       source/.dart_tool
-      #       source/.flutter-plugins
-      #       source/.flutter-plugins-dependencies
-      #     key: ${{ runner.os }}-flutter-${{ hashFiles('source/**/pubspec.lock') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-flutter-
-
-      # # Enhanced Gradle caching
-      # - name: Cache Gradle dependencies
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: |
-      #       ~/.gradle/caches
-      #       ~/.gradle/wrapper
-      #       source/android/.gradle
-      #     key: ${{ runner.os }}-gradle-${{ hashFiles('source/**/*.gradle*', 'source/**/gradle-wrapper.properties') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-gradle-
-
-      # # Cache Android build files
-      # - name: Cache Android build files
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: |
-      #       source/build
-      #       source/android/app/build
-      #     key: ${{ runner.os }}-android-build-${{ github.sha }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-android-build-
-
-      # - name: Step 1 - Flutter create with Android platform
-      #   working-directory: ./source
-      #   run: |
-      #     echo "=== STEP 1: Running flutter create . --platforms=android ==="
-      #     flutter create . --platforms=android
-      #     echo "Flutter create completed successfully"
-
-      # - name: Step 2 - Add Internet Permission
-      #   working-directory: ./source
-      #   run: |
-      #     echo "=== STEP 2: Adding android.permission.INTERNET ==="
-          
-      #     # Path to Android manifest
-      #     MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
-          
-      #     if [ ! -f "$MANIFEST_PATH" ]; then
-      #       echo "ERROR: AndroidManifest.xml not found at $MANIFEST_PATH"
-      #       exit 1
-      #     fi
-          
-      #     # Check if permission already exists
-      #     if grep -q "android.permission.INTERNET" "$MANIFEST_PATH"; then
-      #       echo "INTERNET permission already exists"
-      #     else
-      #       echo "Adding INTERNET permission to AndroidManifest.xml"
-            
-      #       # Add the permission before the <application> tag
-      #       sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST_PATH"
-            
-      #       echo "Permission added successfully"
-      #     fi
-          
-      #     # Verify the permission was added
-      #     echo "Current permissions in manifest:"
-      #     grep -n "uses-permission" "$MANIFEST_PATH" || echo "No uses-permission tags found"
-
-      # - name: Accept Android licenses
-      #   run: |
-      #     echo "=== Accepting Android licenses ==="
-      #     yes | sdkmanager --licenses || true
-
-      # - name: Flutter pub get
-      #   working-directory: ./source
-      #   run: |
-      #     echo "Getting Flutter dependencies..."
-      #     flutter pub get
-
-      # # Configure Gradle build options for better performance
-      # - name: Configure Gradle for CI
-      #   working-directory: ./source
-      #   run: |
-      #     echo "org.gradle.jvmargs=-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" >> android/gradle.properties
-      #     echo "org.gradle.parallel=true" >> android/gradle.properties
-      #     echo "org.gradle.caching=true" >> android/gradle.properties
-      #     echo "org.gradle.daemon=false" >> android/gradle.properties
-      #     echo "android.enableJetifier=true" >> android/gradle.properties
-      #     echo "android.useAndroidX=true" >> android/gradle.properties
-
-      # - name: Flutter build APK (release)
-      #   working-directory: ./source
-      #   env:
-      #     CI: true
-      #   run: |
-      #     echo "=== Running flutter build apk --release ==="
-      #     flutter build apk --release
-      #     echo "APK build completed successfully"
-          
-      #     # Show build output location
-      #     echo "Built APK location:"
-      #     find build/app/outputs -name "*.apk" -type f
-
-
-      - name: Create a local file
+      - name: Download ZIP from input
         run: |
-          echo "temporary nonsense" > /tmp/test.apk
-          ls -l /tmp/test.apk
-          cat /tmp/test.apk
+          echo "Downloading ${{ github.event.inputs.zip_url }}"
+          curl -L \
+            -H "Accept: application/octet-stream" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "${{ github.event.inputs.zip_url }}" \
+            -o source.zip
+          
+          # Test and extract ZIP
+          unzip -t source.zip || echo "ZIP test completed with warnings"
+          unzip -q source.zip -d source
+          
+          echo "Extracted files:"
+          ls -la source/
+
+      - name: Install JDK (required by Android build)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      # Enhanced caching for Flutter & Dart
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            source/.dart_tool
+            source/.flutter-plugins
+            source/.flutter-plugins-dependencies
+          key: ${{ runner.os }}-flutter-${{ hashFiles('source/**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
+
+      # Enhanced Gradle caching
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            source/android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('source/**/*.gradle*', 'source/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Cache Android build files
+      - name: Cache Android build files
+        uses: actions/cache@v4
+        with:
+          path: |
+            source/build
+            source/android/app/build
+          key: ${{ runner.os }}-android-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-android-build-
+
+      - name: Step 1 - Flutter create with Android platform
+        working-directory: ./source
+        run: |
+          echo "=== STEP 1: Running flutter create . --platforms=android ==="
+          flutter create . --platforms=android
+          echo "Flutter create completed successfully"
+
+      - name: Step 2 - Add Internet Permission
+        working-directory: ./source
+        run: |
+          echo "=== STEP 2: Adding android.permission.INTERNET ==="
+          
+          # Path to Android manifest
+          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          
+          if [ ! -f "$MANIFEST_PATH" ]; then
+            echo "ERROR: AndroidManifest.xml not found at $MANIFEST_PATH"
+            exit 1
+          fi
+          
+          # Check if permission already exists
+          if grep -q "android.permission.INTERNET" "$MANIFEST_PATH"; then
+            echo "INTERNET permission already exists"
+          else
+            echo "Adding INTERNET permission to AndroidManifest.xml"
+            
+            # Add the permission before the <application> tag
+            sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST_PATH"
+            
+            echo "Permission added successfully"
+          fi
+          
+          # Verify the permission was added
+          echo "Current permissions in manifest:"
+          grep -n "uses-permission" "$MANIFEST_PATH" || echo "No uses-permission tags found"
+
+      - name: Accept Android licenses
+        run: |
+          echo "=== Accepting Android licenses ==="
+          yes | sdkmanager --licenses || true
+
+      - name: Flutter pub get
+        working-directory: ./source
+        run: |
+          echo "Getting Flutter dependencies..."
+          flutter pub get
+
+      # Configure Gradle build options for better performance
+      - name: Configure Gradle for CI
+        working-directory: ./source
+        run: |
+          echo "org.gradle.jvmargs=-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" >> android/gradle.properties
+          echo "org.gradle.parallel=true" >> android/gradle.properties
+          echo "org.gradle.caching=true" >> android/gradle.properties
+          echo "org.gradle.daemon=false" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "android.useAndroidX=true" >> android/gradle.properties
+
+      - name: Flutter build APK (release)
+        working-directory: ./source
+        env:
+          CI: true
+        run: |
+          echo "=== Running flutter build apk --release ==="
+          flutter build apk --release
+          echo "APK build completed successfully"
+          
+          # Show build output location
+          echo "Built APK location:"
+          find build/app/outputs -name "*.apk" -type f
+
+
+      # - name: Create a local file
+      #   run: |
+      #     echo "temporary nonsense" > /tmp/test.apk
+      #     ls -l /tmp/test.apk
+      #     cat /tmp/test.apk
 
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1
@@ -191,35 +191,35 @@ jobs:
           gcloud config set project ${{ secrets.FIREBASE_PROJECT_ID }}
       
       
-      # - name: Extract APK Info
-      #   id: apk_info
-      #   working-directory: ./source
-      #   run: |
-      #     APK_PATH=$(find build/app/outputs -name "*.apk" -type f | head -1)
-      #     echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+      - name: Extract APK Info
+        id: apk_info
+        working-directory: ./source
+        run: |
+          APK_PATH=$(find build/app/outputs -name "*.apk" -type f | head -1)
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           
-      #     # Try to extract version info from the APK
-      #     if [ -x "$(command -v aapt)" ]; then
-      #       VERSION_CODE=$(aapt dump badging "$APK_PATH" | grep versionCode | sed "s/.*versionCode='\([0-9]*\).*/\1/")
-      #       VERSION_NAME=$(aapt dump badging "$APK_PATH" | grep versionName | sed "s/.*versionName='\([^']*\).*/\1/")
-      #       echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
-      #       echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
-      #     else
-      #       echo "version_code=unknown" >> $GITHUB_OUTPUT
-      #       echo "version_name=${{ github.event.inputs.version_name }}" >> $GITHUB_OUTPUT
-      #     fi
+          # Try to extract version info from the APK
+          if [ -x "$(command -v aapt)" ]; then
+            VERSION_CODE=$(aapt dump badging "$APK_PATH" | grep versionCode | sed "s/.*versionCode='\([0-9]*\).*/\1/")
+            VERSION_NAME=$(aapt dump badging "$APK_PATH" | grep versionName | sed "s/.*versionName='\([^']*\).*/\1/")
+            echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+            echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "version_code=unknown" >> $GITHUB_OUTPUT
+            echo "version_name=${{ github.event.inputs.version_name }}" >> $GITHUB_OUTPUT
+          fi
           
-      #     # Get the file size
-      #     FILE_SIZE=$(stat -c%s "$APK_PATH")
-      #     echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
+          # Get the file size
+          FILE_SIZE=$(stat -c%s "$APK_PATH")
+          echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
           
-      #     # Generate MD5 hash for the APK
-      #     APK_HASH=$(md5sum "$APK_PATH" | cut -d ' ' -f 1)
-      #     echo "apk_hash=$APK_HASH" >> $GITHUB_OUTPUT
+          # Generate MD5 hash for the APK
+          APK_HASH=$(md5sum "$APK_PATH" | cut -d ' ' -f 1)
+          echo "apk_hash=$APK_HASH" >> $GITHUB_OUTPUT
           
-      #     # Generate timestamp
-      #     TIMESTAMP=$(date +%Y%m%d%H%M%S)
-      #     echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          # Generate timestamp
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
 
       
       
@@ -228,14 +228,14 @@ jobs:
         run: |
 
           # Set variables
-          APK_PATH="/tmp/test.apk"
+          APK_PATH="${{ steps.apk_info.outputs.apk_path }}" # "/tmp/test.apk"
           APP_NAME="${{ github.event.inputs.app_name }}"
           VERSION="${{ github.event.inputs.version_name }}"
           TIMESTAMP="${{ steps.apk_info.outputs.timestamp }}"
           
           # Create a unique filename
           FILENAME="${APP_NAME}_${VERSION}_${TIMESTAMP}.apk"
-          STORAGE_PATH="apps/${APP_NAME}/${VERSION}/${FILENAME}"
+          STORAGE_PATH="exportedBuilds/${APP_NAME}/${VERSION}/${FILENAME}"
           GCS_PATH="gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH"
           
           echo "Uploading APK to $GCS_PATH"
@@ -286,7 +286,7 @@ jobs:
           
           # Create document in Firestore using REST API
           curl -X PATCH \
-            "https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/app_builds/${TIMESTAMP}" \
+            "https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/exportBuilds/${TIMESTAMP}" \
             -H "Authorization: Bearer ${ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
             -d @payload.json
