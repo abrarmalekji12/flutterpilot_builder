@@ -232,6 +232,7 @@ jobs:
       
       - name: Upload to Firebase Storage
         id: firebase_upload
+        working-directory: ./source
         run: |
 
           # Set variables
