@@ -195,7 +195,7 @@ jobs:
         id: apk_info
         working-directory: ./source
         run: |
-          APK_PATH=$(find build/app/outputs -name "*.apk" -type f | head -1)
+          APK_PATH=$(find build/app/outputs/apk/release -name "*.apk" -type f | head -1)
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           
           # Try to extract version info from the APK
