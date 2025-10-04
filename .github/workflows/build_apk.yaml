@@ -253,7 +253,6 @@ jobs:
           npm install -g firebase-tools
           firebase --version
       
-      # Update Firestore with APK metadata
       - name: Update Firestore
         run: |
           # Create JSON document for Firestore
@@ -277,16 +276,15 @@ jobs:
           EOL
           
           # Add to Firestore using Firebase CLI
+          # The document ID is part of the path: collection/documentId
           firebase firestore:set --project ${{ secrets.FIREBASE_PROJECT_ID }} \
             "app_builds/${{ steps.apk_info.outputs.timestamp }}" \
-            --document-id "${{ steps.apk_info.outputs.timestamp }}" \
             --data-file apk_metadata.json \
             --token "${{ secrets.FIREBASE_TOKEN }}"
           
           # Also update a 'latest' document for this app
           firebase firestore:set --project ${{ secrets.FIREBASE_PROJECT_ID }} \
-            "apps/${{ github.event.inputs.app_name }}/latest_android" \
-            --document-id "latest" \
+            "apps/${{ github.event.inputs.app_name }}/latest_android/latest" \
             --data-file apk_metadata.json \
             --token "${{ secrets.FIREBASE_TOKEN }}"
       
