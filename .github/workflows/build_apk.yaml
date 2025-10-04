@@ -195,7 +195,14 @@ jobs:
         id: apk_info
         working-directory: ./source
         run: |
-          APK_PATH=$(find build/app/outputs/apk/release -name "*.apk" -type f | head -1)
+          if [ -d "build/app/outputs/flutter-apk" ]; then
+            APK_PATH=$(find build/app/outputs/flutter-apk -name "*.apk" -type f | head -1)
+          fi
+          
+          # Fallback to old path
+          if [ -z "$APK_PATH" ] && [ -d "build/app/outputs/apk/release" ]; then
+            APK_PATH=$(find build/app/outputs/apk/release -name "*.apk" -type f | head -1)
+          fi
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           
           # Try to extract version info from the APK
