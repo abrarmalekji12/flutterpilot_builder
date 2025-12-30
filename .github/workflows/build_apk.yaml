@@ -191,75 +191,75 @@ jobs:
           gcloud config set project ${{ secrets.FIREBASE_PROJECT_ID }}
       
       
-      - name: Extract APK Info
-        id: apk_info
-        working-directory: ./source
-        run: |
-          if [ -d "build/app/outputs/flutter-apk" ]; then
-            APK_PATH=$(find build/app/outputs/flutter-apk -name "*.apk" -type f | head -1)
-          fi
+      # - name: Extract APK Info
+      #   id: apk_info
+      #   working-directory: ./source
+      #   run: |
+      #     if [ -d "build/app/outputs/flutter-apk" ]; then
+      #       APK_PATH=$(find build/app/outputs/flutter-apk -name "*.apk" -type f | head -1)
+      #     fi
           
-          # Fallback to old path
-          if [ -z "$APK_PATH" ] && [ -d "build/app/outputs/apk/release" ]; then
-            APK_PATH=$(find build/app/outputs/apk/release -name "*.apk" -type f | head -1)
-          fi
-          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+      #     # Fallback to old path
+      #     if [ -z "$APK_PATH" ] && [ -d "build/app/outputs/apk/release" ]; then
+      #       APK_PATH=$(find build/app/outputs/apk/release -name "*.apk" -type f | head -1)
+      #     fi
+      #     echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           
-          # Try to extract version info from the APK
-          if [ -x "$(command -v aapt)" ]; then
-            VERSION_CODE=$(aapt dump badging "$APK_PATH" | grep versionCode | sed "s/.*versionCode='\([0-9]*\).*/\1/")
-            VERSION_NAME=$(aapt dump badging "$APK_PATH" | grep versionName | sed "s/.*versionName='\([^']*\).*/\1/")
-            echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
-            echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
-          else
-            echo "version_code=unknown" >> $GITHUB_OUTPUT
-            echo "version_name=${{ github.event.inputs.version_name }}" >> $GITHUB_OUTPUT
-          fi
+      #     # Try to extract version info from the APK
+      #     if [ -x "$(command -v aapt)" ]; then
+      #       VERSION_CODE=$(aapt dump badging "$APK_PATH" | grep versionCode | sed "s/.*versionCode='\([0-9]*\).*/\1/")
+      #       VERSION_NAME=$(aapt dump badging "$APK_PATH" | grep versionName | sed "s/.*versionName='\([^']*\).*/\1/")
+      #       echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+      #       echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+      #     else
+      #       echo "version_code=unknown" >> $GITHUB_OUTPUT
+      #       echo "version_name=${{ github.event.inputs.version_name }}" >> $GITHUB_OUTPUT
+      #     fi
           
-          # Get the file size
-          FILE_SIZE=$(stat -c%s "$APK_PATH")
-          echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
+      #     # Get the file size
+      #     FILE_SIZE=$(stat -c%s "$APK_PATH")
+      #     echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
           
-          # Generate MD5 hash for the APK
-          APK_HASH=$(md5sum "$APK_PATH" | cut -d ' ' -f 1)
-          echo "apk_hash=$APK_HASH" >> $GITHUB_OUTPUT
+      #     # Generate MD5 hash for the APK
+      #     APK_HASH=$(md5sum "$APK_PATH" | cut -d ' ' -f 1)
+      #     echo "apk_hash=$APK_HASH" >> $GITHUB_OUTPUT
           
-          # Generate timestamp
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+      #     # Generate timestamp
+      #     TIMESTAMP=$(date +%Y%m%d%H%M%S)
+      #     echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
 
       
       
-      - name: Upload to Firebase Storage
-        id: firebase_upload
-        working-directory: ./source
-        run: |
+      # - name: Upload to Firebase Storage
+      #   id: firebase_upload
+      #   working-directory: ./source
+      #   run: |
 
-          # Set variables
-          APK_PATH="${{ steps.apk_info.outputs.apk_path }}" # "/tmp/test.apk"
-          APP_NAME="${{ github.event.inputs.app_name }}"
-          VERSION="${{ github.event.inputs.version_name }}"
-          TIMESTAMP="${{ steps.apk_info.outputs.timestamp }}"
+      #     # Set variables
+      #     APK_PATH="${{ steps.apk_info.outputs.apk_path }}" # "/tmp/test.apk"
+      #     APP_NAME="${{ github.event.inputs.app_name }}"
+      #     VERSION="${{ github.event.inputs.version_name }}"
+      #     TIMESTAMP="${{ steps.apk_info.outputs.timestamp }}"
           
-          # Create a unique filename
-          FILENAME="${APP_NAME}_${VERSION}_${TIMESTAMP}.apk"
-          STORAGE_PATH="exportedBuilds/${APP_NAME}/${VERSION}/${FILENAME}"
-          GCS_PATH="gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH"
+      #     # Create a unique filename
+      #     FILENAME="${APP_NAME}_${VERSION}_${TIMESTAMP}.apk"
+      #     STORAGE_PATH="exportedBuilds/${APP_NAME}/${VERSION}/${FILENAME}"
+      #     GCS_PATH="gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH"
           
-          echo "Uploading APK to $GCS_PATH"
-          gsutil cp "$APK_PATH" "$GCS_PATH"
+      #     echo "Uploading APK to $GCS_PATH"
+      #     gsutil cp "$APK_PATH" "$GCS_PATH"
           
-          # Get the download URL
-          DOWNLOAD_URL="https://storage.googleapis.com/${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH"
-          echo "Download URL: $DOWNLOAD_URL"
+      #     # Get the download URL
+      #     DOWNLOAD_URL="https://storage.googleapis.com/${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH"
+      #     echo "Download URL: $DOWNLOAD_URL"
           
-          echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
-          echo "storage_path=$STORAGE_PATH" >> $GITHUB_OUTPUT
+      #     echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+      #     echo "storage_path=$STORAGE_PATH" >> $GITHUB_OUTPUT
 
-      - name: Install Firebase CLI
-        run: |
-          npm install -g firebase-tools
-          firebase --version
+      # - name: Install Firebase CLI
+      #   run: |
+      #     npm install -g firebase-tools
+      #     firebase --version
       
       
       - name: Update Firestore
@@ -298,6 +298,28 @@ jobs:
             -H "Authorization: Bearer ${ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
             -d @payload.json
+
+      - name: Notify Firebase Function - export_apk_success
+        run: |
+          PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
+          FUNCTION_NAME="export_apk_success"
+          REGION="us-central1"
+
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+
+          echo "Calling Firebase Function: $FUNCTION_NAME"
+
+          curl -X POST \
+            "https://${REGION}-${PROJECT_ID}.cloudfunctions.net/${FUNCTION_NAME}" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "projectId": "${{ github.event.inputs.project_id }}",
+              "appName": "${{ github.event.inputs.app_name }}",
+              "versionName": "${{ github.event.inputs.version_name }}",
+              "downloadUrl": "${{ steps.firebase_upload.outputs.download_url }}"
+            }'
+
 
       - name: Output Build Info
         run: |
