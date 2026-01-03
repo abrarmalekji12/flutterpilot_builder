@@ -152,6 +152,25 @@ jobs:
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "android.useAndroidX=true" >> android/gradle.properties
 
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      
+      # THEN set up Google Cloud SDK
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      
+      # Verify authentication before upload
+      - name: Verify Authentication
+        run: |
+          gcloud auth list
+          gcloud config list
+          gcloud config set project ${{ secrets.FIREBASE_PROJECT_ID }}
+      
+
 # NEEDED
       - name: Flutter build APK (release)
         id: flutter_build
@@ -192,24 +211,7 @@ jobs:
       #     ls -l /tmp/test.apk
       #     cat /tmp/test.apk
 
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      
-      # THEN set up Google Cloud SDK
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
-      
-      # Verify authentication before upload
-      - name: Verify Authentication
-        run: |
-          gcloud auth list
-          gcloud config list
-          gcloud config set project ${{ secrets.FIREBASE_PROJECT_ID }}
-      
+
       # NEEDED
       
       - name: Extract APK Info
