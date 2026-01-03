@@ -344,6 +344,7 @@ jobs:
               "appName": {"stringValue": "${{ github.event.inputs.app_name }}"},
               "versionName": {"stringValue": "${{ github.event.inputs.version_name }}"},
               "downloadUrl": {"stringValue": "${{ steps.firebase_upload.outputs.download_url }}"},
+              "success": { "booleanValue":true },
               "storagePath": {"stringValue": "${{ steps.firebase_upload.outputs.storage_path }}"},
               "buildId": {"stringValue": "${{ github.run_id }}"},
               "buildNumber": {"integerValue": "${{ github.run_number }}"},
