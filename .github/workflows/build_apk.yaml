@@ -200,7 +200,7 @@ jobs:
           # Get access token from gcloud
           ACCESS_TOKEN=$(gcloud auth print-access-token)
 
-          ERROR_LOG=$(tail -n 100 build.log | sed 's/"/\\"/g')
+          ERROR_LOG=$(tail -n 200 build.log | sed 's/"/\\"/g')
           
           # Create Firestore document payload
           cat > payload.json << EOL
