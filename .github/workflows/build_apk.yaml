@@ -203,7 +203,7 @@ jobs:
           ERROR_LOG=$(tail -n 100 build.log | sed 's/"/\\"/g')
           
           # Create Firestore document payload
-          cat > payload.json << 'EOL'
+          cat > payload.json << EOL
           {
             "fields": {
               "projectId": {"stringValue": "${{ github.event.inputs.project_id }}"},
