@@ -191,6 +191,7 @@ jobs:
 
       - name: Notify Firebase Function - export_apk_complete (failure)
         if: ${{ steps.flutter_build.outcome == 'failure' }}
+        working-directory: ./source
         run: |
           TIMESTAMP=$(date +%s)
           APP_NAME="${{ github.event.inputs.app_name }}"
