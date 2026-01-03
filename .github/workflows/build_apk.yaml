@@ -154,6 +154,7 @@ jobs:
 
 # NEEDED
       - name: Flutter build APK (release)
+        id: flutter_build
         working-directory: ./source
         env:
           CI: true
@@ -166,6 +167,24 @@ jobs:
           echo "Built APK location:"
           find build/app/outputs -name "*.apk" -type f
 
+
+      - name: Notify Firebase Function - export_apk_complete (failure)
+        if: failure()
+        run: |
+          PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
+          FUNCTION_NAME="export_apk_complete"
+          REGION="us-central1"
+      
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+      
+          curl -X POST \
+            "https://${REGION}-${PROJECT_ID}.cloudfunctions.net/${FUNCTION_NAME}" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "projectId": "${{ github.event.inputs.project_id }}",
+              "success": false
+            }'
 
       # - name: Create a local file
       #   run: |
@@ -302,26 +321,45 @@ jobs:
             -H "Content-Type: application/json" \
             -d @payload.json
 
-      - name: Notify Firebase Function - export_apk_success
+      # - name: Notify Firebase Function - export_apk_success
+      #   run: |
+      #     PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
+      #     FUNCTION_NAME="export_apk_success"
+      #     REGION="us-central1"
+
+      #     ACCESS_TOKEN=$(gcloud auth print-access-token)
+
+      #     echo "Calling Firebase Function: $FUNCTION_NAME"
+
+      #     curl -X POST \
+      #       "https://${REGION}-${PROJECT_ID}.cloudfunctions.net/${FUNCTION_NAME}" \
+      #       -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+      #       -H "Content-Type: application/json" \
+      #       -d '{
+      #         "projectId": "${{ github.event.inputs.project_id }}",
+      #         "appName": "${{ github.event.inputs.app_name }}",
+      #         "versionName": "${{ github.event.inputs.version_name }}",
+      #         "downloadUrl": "${{ steps.firebase_upload.outputs.download_url }}"
+      #       }'
+
+      - name: Notify Firebase Function - export_apk_complete (success)
+        if: success()
         run: |
           PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
-          FUNCTION_NAME="export_apk_success"
+          FUNCTION_NAME="export_apk_complete"
           REGION="us-central1"
-
+      
           ACCESS_TOKEN=$(gcloud auth print-access-token)
-
-          echo "Calling Firebase Function: $FUNCTION_NAME"
-
+      
           curl -X POST \
             "https://${REGION}-${PROJECT_ID}.cloudfunctions.net/${FUNCTION_NAME}" \
             -H "Authorization: Bearer ${ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{
               "projectId": "${{ github.event.inputs.project_id }}",
-              "appName": "${{ github.event.inputs.app_name }}",
-              "versionName": "${{ github.event.inputs.version_name }}",
-              "downloadUrl": "${{ steps.firebase_upload.outputs.download_url }}"
+              "success": true
             }'
+
 
 
       - name: Output Build Info
