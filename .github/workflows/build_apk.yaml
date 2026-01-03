@@ -190,7 +190,7 @@ jobs:
           exit $EXIT_CODE
 
       - name: Notify Firebase Function - export_apk_complete (failure)
-        if: failure()
+        if: ${{ steps.flutter_build.outcome == 'failure' }}
         run: |
           TIMESTAMP=$(date +%s)
           APP_NAME="${{ github.event.inputs.app_name }}"
@@ -257,6 +257,7 @@ jobs:
       
       - name: Extract APK Info
         id: apk_info
+        if: ${{ steps.flutter_build.outcome == 'success' }}
         working-directory: ./source
         run: |
           if [ -d "build/app/outputs/flutter-apk" ]; then
@@ -296,6 +297,7 @@ jobs:
       # NEEDED
       - name: Upload to Firebase Storage
         id: firebase_upload
+        if: ${{ steps.flutter_build.outcome == 'success' }}
         working-directory: ./source
         run: |
 
@@ -322,12 +324,14 @@ jobs:
       
 
       - name: Install Firebase CLI
+        if: ${{ steps.flutter_build.outcome == 'success' }}
         run: |
           npm install -g firebase-tools
           firebase --version
       
       
       - name: Update Firestore
+        if: ${{ steps.flutter_build.outcome == 'success' }}
         run: |
           TIMESTAMP=$(date +%s)
           APP_NAME="${{ github.event.inputs.app_name }}"
@@ -387,7 +391,7 @@ jobs:
       #       }'
 
       - name: Notify Firebase Function - export_apk_complete (success)
-        if: success()
+        if: ${{ steps.flutter_build.outcome == 'success' }}
         run: |
           PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           FUNCTION_NAME="export_apk_complete"
@@ -407,6 +411,7 @@ jobs:
 
 
       - name: Output Build Info
+        if: ${{ steps.flutter_build.outcome == 'success' }}
         run: |
           echo "✅ Build Completed Successfully"
           echo "📱 App: ${{ github.event.inputs.app_name }}"
