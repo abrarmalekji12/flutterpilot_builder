@@ -174,22 +174,63 @@ jobs:
 # NEEDED
       - name: Flutter build APK (release)
         id: flutter_build
+        continue-on-error: true
         working-directory: ./source
         env:
           CI: true
         run: |
           echo "=== Running flutter build apk --release ==="
-          flutter build apk --release
-          echo "APK build completed successfully"
-          
+          flutter build apk --release > build.log 2>&1
           # Show build output location
           echo "Built APK location:"
           find build/app/outputs -name "*.apk" -type f
-
+          
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $EXIT_CODE
 
       - name: Notify Firebase Function - export_apk_complete (failure)
         if: failure()
         run: |
+          TIMESTAMP=$(date +%s)
+          APP_NAME="${{ github.event.inputs.app_name }}"
+          PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
+          
+          # Get access token from gcloud
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+
+          ERROR_LOG=$(tail -n 100 build.log | sed 's/"/\\"/g')
+          
+          # Create Firestore document payload
+          cat > payload.json << 'EOL'
+          {
+            "fields": {
+              "projectId": {"stringValue": "${{ github.event.inputs.project_id }}"},
+              "appName": {"stringValue": "${{ github.event.inputs.app_name }}"},
+              "versionName": {"stringValue": "${{ github.event.inputs.version_name }}"},
+              "success": { "booleanValue": false },
+              "error": { "stringValue": "$ERROR_LOG" },
+              # "downloadUrl": {"stringValue": "${{ steps.firebase_upload.outputs.download_url }}"},
+              # "storagePath": {"stringValue": "${{ steps.firebase_upload.outputs.storage_path }}"},
+              # "buildId": {"stringValue": "${{ github.run_id }}"},
+              "buildNumber": {"integerValue": "${{ github.run_number }}"},
+              "buildType": {"stringValue": "release"},
+              "platform": {"stringValue": "android"},
+              "updatedAt": {"timestampValue": "TIMESTAMP_PLACEHOLDER"}
+            }
+          }
+          EOL
+          
+          # Replace placeholders
+          sed -i "s/TIMESTAMP_PLACEHOLDER/$(date -u +%Y-%m-%dT%H:%M:%SZ)/" payload.json
+          
+          # Create document in Firestore using REST API
+          curl -X PATCH \
+            "https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/exportBuilds/${TIMESTAMP}" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d @payload.json
+          
           PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           FUNCTION_NAME="export_apk_complete"
           REGION="us-central1"
