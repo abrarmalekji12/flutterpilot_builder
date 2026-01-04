@@ -308,7 +308,7 @@ jobs:
           
           # Create a unique filename
           FILENAME="${APP_NAME}_${VERSION}_${TIMESTAMP}.apk"
-          STORAGE_PATH="exportedBuilds/${APP_NAME}/${VERSION}/${FILENAME}"
+          STORAGE_PATH="exportedBuilds/${github.event.inputs.project_id}/${VERSION}/${FILENAME}"
           GCS_PATH="gs://${{ secrets.FIREBASE_STORAGE_BUCKET }}/$STORAGE_PATH"
           
           echo "Uploading APK to $GCS_PATH"
